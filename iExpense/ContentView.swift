@@ -11,86 +11,62 @@ struct ContentView: View {
   @StateObject var expenses = Expenses()
   @State private var showingAddExpense = false
   
-  let localCurrency: FloatingPointFormatStyle<Double>.Currency = .currency(code: Locale.current.currency?.identifier ?? "USD")
+  //below was removed based on Paul's solution and moved to FormatStyle-LocalCurrency.swift as an extension
+  
+  //  let localCurrency: FloatingPointFormatStyle<Double>.Currency = .currency(code: Locale.current.currency?.identifier ?? "USD")
   
   var body: some View {
     
+    //New  ContentView is just a matter of using ExpenseSection twice:
+    
     NavigationView {
-      Form {
-        Section(header: Text("Personal")) {
-          List {
-            ForEach(expenses.items) { item in
-              if item.type == "Personal" {
-                HStack {
-                  VStack(alignment: .leading) {
-                    Text(item.name)
-                      .font(.headline)
-                  }
-                  
-                  Spacer()
-                  
-                  Text(item.amount, format:localCurrency)
-                    .foregroundColor(colorToUse(amount: item.amount))
-                    .fontWeight(.bold)
-                }
-              }
-            }
-            .onDelete(perform: removeItems)
-          }
-        }
-        
-        Section(header: Text("Business")) {
-          List {
-            ForEach(expenses.items) { item in
-              if item.type == "Business" {
-                HStack {
-                  VStack(alignment: .leading) {
-                    Text(item.name)
-                      .font(.headline)
-                  }
-                  
-                  Spacer()
-                  
-                  Text(item.amount, format:localCurrency)
-                    .foregroundColor(colorToUse(amount: item.amount))
-                    .fontWeight(.bold)
-                }
-              }
-            }
-            .onDelete(perform: removeItems)
-          }
-        }
-        
-        .navigationTitle("iExpense")
+      List {
+        ExpenseSection(title: "Business", expenses: expenses.businessItems, deleteItems: removeBusinessItems)
+        ExpenseSection(title: "Personal", expenses: expenses.personalItems, deleteItems: removePersonalItems)
       }
-      .toolbar {
-        Button {
-          showingAddExpense = true
-        } label: {
-          Image(systemName: "plus")
-        }
-        .sheet(isPresented: $showingAddExpense) {
-          AddView(expenses: expenses)
-        }
+      .navigationTitle("iExpense")
+    }
+    .toolbar {
+      Button {
+        showingAddExpense = true
+      } label: {
+        Image(systemName: "plus")
+      }
+      .sheet(isPresented: $showingAddExpense) {
+        AddView(expenses: expenses)
       }
     }
-  }
-  
-  func removeItems(at offsets: IndexSet) {
-    expenses.items.remove(atOffsets: offsets)
-  }
-  
-  func colorToUse(amount: Double) -> Color {
     
-    switch amount {
-    case 0..<20:
-      return .green
-    case 20..<51:
-      return .blue
-    default:
-      return .red
+  }
+  
+  //  func removeItems(at offsets: IndexSet) {
+  //    expenses.items.remove(atOffsets: offsets)
+  //  }
+  
+  //Removed the original removeItems as it doesn't know if you deleted an item from the personal array or the business array.  We need to update the removeItems() method so that it knows which input array it’s reading from – personal items or business items. This will then create a new IndexSet by locating each item in the full array, and delete them in bulk using remove(atOffsets:) like before:
+  
+  func removeItems(at offsets: IndexSet, in inputArray: [ExpenseItem]) {
+    var objectsToDelete = IndexSet()
+    
+    for offset in offsets {
+      let item = inputArray[offset]
+      
+      if let index = expenses.items.firstIndex(of: item) {
+        objectsToDelete.insert(index)
+      }
     }
     
+    expenses.items.remove(atOffsets: objectsToDelete)
+  }
+  
+  //We need to wrap that in two simpler methods that SwiftUI can call directly from onDelete():
+  
+  func removePersonalItems(at offsets: IndexSet) {
+    removeItems(at: offsets, in: expenses.personalItems)
+  }
+  
+  func removeBusinessItems(at offsets: IndexSet) {
+    removeItems(at: offsets, in: expenses.businessItems)
   }
   
 }

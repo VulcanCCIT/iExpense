@@ -16,7 +16,10 @@ struct AddView: View {
   @State private var amount = 0.0
   
   let types = ["Business", "Personal"]
-  let localCurrency: FloatingPointFormatStyle<Double>.Currency = .currency(code: Locale.current.currency?.identifier ?? "USD")
+  
+  //below was removed based on Paul's solution and moved to FormatStyle-LocalCurrency.swift as an extension
+  
+  //  let localCurrency: FloatingPointFormatStyle<Double>.Currency = .currency(code: Locale.current.currency?.identifier ?? "USD")
   
   var body: some View {
     NavigationView {
@@ -29,7 +32,7 @@ struct AddView: View {
           }
         }
         
-        TextField("Amount", value: $amount, format: localCurrency)
+        TextField("Amount", value: $amount, format: .localCurrency)
           .keyboardType(.decimalPad)
       }
       .navigationTitle("Add new expense")
